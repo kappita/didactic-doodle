@@ -3,13 +3,12 @@ package tingeso.prestabanco.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Data
 @ToString
 @Entity
-@Table(name="executive")
+@Table(name = "executive")
 public class ExecutiveModel extends UserModel {
+    @Column(name = "name")
     private String name;
+
 }

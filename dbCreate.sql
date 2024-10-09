@@ -41,10 +41,7 @@ CREATE TABLE client (
 
 CREATE TABLE executive (
     id BIGINT PRIMARY KEY REFERENCES base_user(id),
-    email TEXT NOT NULL,
-    password TEXT NOT NULL,
-    name TEXT NOT NULL,
-    UNIQUE(email)
+    name TEXT NOT NULL
 );
 
 CREATE TABLE loan_type (

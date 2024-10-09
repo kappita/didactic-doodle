@@ -61,16 +61,9 @@ public class ExecutiveService {
             throw new RuntimeException("Role not found");
         }
         executive.setRole(role.get());
-        System.out.println(executive.toString());
-        System.out.println(executive.getEmail() );
-        ExecutiveModel ex = new ExecutiveModel();
-        ex.setEmail("nashe");
-        ex.setPassword("nashe");
-        ex.setRole(role.get());
-        ex.setName("nashe");
 
         try {
-            executiveRepository.save(ex);
+            executiveRepository.save(executive);
         } catch (Exception e) {
             // Log the error or handle it accordingly
             throw new RuntimeException("Error saving executive", e);
