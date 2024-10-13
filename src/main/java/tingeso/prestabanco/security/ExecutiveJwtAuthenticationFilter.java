@@ -45,7 +45,7 @@ public class ExecutiveJwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         System.out.println(SecurityContextHolder.getContext().getAuthentication());
-        Boolean is_not_authenticated = SecurityContextHolder.getContext().getAuthentication() instanceof AnonymousAuthenticationToken;
+        Boolean is_not_authenticated = SecurityContextHolder.getContext().getAuthentication() == null;
         Boolean is_client = role != null && role == 2;
         if (is_client && is_not_authenticated) {
             Optional<ExecutiveModel> executive = executiveRepository.findById(id);

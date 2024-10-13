@@ -49,12 +49,18 @@ public class SecurityConfig {
     public SecurityFilterChain clientSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/clients/**")
+                .securityMatcher("/mortgage_loan/**")
                 .cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/clients/register", "/clients/login").permitAll()
-                .requestMatchers("/clients/**").authenticated())
-                .addFilterAfter(clientJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .requestMatchers("/clients/**",
+                                 "/mortgage_loan/{id}/cancel_mortgage",
+                                 "/mortgage_loan/{id}/add_documents",
+                                 "/mortgage_loan/{id}/set_final_approval",
+                                 "/mortgage_loan",
+                                 "/mortgage_loan/{id}").authenticated())
+                .addFilterBefore(clientJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
 
     }
@@ -65,12 +71,15 @@ public class SecurityConfig {
     public SecurityFilterChain executiveSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/executives/**")
+                .securityMatcher("/mortgage_loan/**")
                 .cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/executives/login", "/executives/register").permitAll()
-                                                   .requestMatchers("/executives/**").authenticated())
-                .addFilterAfter(executiveJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                                                   .requestMatchers("/executives/**").authenticated()
+                        .requestMatchers("/mortgage_loan/{id}/set_pending_documentation",
+                                         "/mortgage_loan/{id}").authenticated())
+                .addFilterBefore(executiveJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
 
     }

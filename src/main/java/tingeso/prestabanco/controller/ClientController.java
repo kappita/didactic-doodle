@@ -9,6 +9,7 @@ import tingeso.prestabanco.dto.LoginRequest;
 import tingeso.prestabanco.dto.LoginResponse;
 import tingeso.prestabanco.dto.RegisterResponse;
 import tingeso.prestabanco.model.ClientModel;
+import tingeso.prestabanco.model.MortgageLoanModel;
 import tingeso.prestabanco.service.ClientService;
 
 import java.util.List;
@@ -48,6 +49,16 @@ public class ClientController {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(res.get());
+    }
+
+    @GetMapping("/me/mortgage_loans")
+    public ResponseEntity<List<MortgageLoanModel>> getMortgageLoans() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        ClientModel client = (ClientModel) auth.getPrincipal();
+        return ResponseEntity.ok(clientService.getMortgageRequests(client));
     }
 
 //    @GetMapping("")

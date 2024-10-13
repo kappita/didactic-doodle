@@ -12,9 +12,11 @@ import tingeso.prestabanco.dto.LoginRequest;
 import tingeso.prestabanco.dto.LoginResponse;
 import tingeso.prestabanco.dto.RegisterResponse;
 import tingeso.prestabanco.model.ClientModel;
+import tingeso.prestabanco.model.MortgageLoanModel;
 import tingeso.prestabanco.model.RoleModel;
 import tingeso.prestabanco.model.UserModel;
 import tingeso.prestabanco.repository.ClientRepository;
+import tingeso.prestabanco.repository.MortgageLoanRepository;
 import tingeso.prestabanco.repository.RoleRepository;
 import tingeso.prestabanco.repository.UserRepository;
 import tingeso.prestabanco.util.JwtUtil;
@@ -38,6 +40,9 @@ public class ClientService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private MortgageLoanRepository mortgageLoanRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -92,6 +97,12 @@ public class ClientService {
         return Optional.of(res);
 
     };
+
+    public List<MortgageLoanModel> getMortgageRequests(ClientModel client) {
+        return mortgageLoanRepository.findAllByClientId(client.getId());
+    }
+
+
 
 
 //    public Optional<ClientModel> login(String username, String password) {

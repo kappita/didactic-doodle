@@ -18,16 +18,16 @@ import java.util.List;
 public class UserModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    protected Long id;
     @Column(nullable = false, unique = true)
-    private String email;
+    protected String email;
     @Column(nullable = false)
-    private String password;
+    protected String password;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
-    private RoleModel role;
+    protected RoleModel role;
 
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(() -> "ROLE_" + this.getRole().getName()); // Return the role as an authority
+        return List.of(() -> "ROLE_" + this.role.getName()); // Return the role as an authority
     }
 }

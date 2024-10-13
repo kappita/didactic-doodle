@@ -28,7 +28,6 @@ import java.util.Optional;
 
 @Component
 public class ExecutiveService {
-
     @Autowired
     private AuthenticationManager authenticationManager;
 
@@ -43,6 +42,7 @@ public class ExecutiveService {
 
     @Autowired
     private RoleRepository roleRepository;
+
     @Autowired
     private UserRepository userRepository;
 
@@ -94,13 +94,7 @@ public class ExecutiveService {
         String token = jwtUtil.createToken(claims, client.get().getId().toString());
         LoginResponse res = new LoginResponse(token, client.get().getName());
         return Optional.of(res);
-
-    };
-
-
-//    public Optional<ClientModel> login(String username, String password) {
-//        return
-//    };
+    }
 
     private Boolean validateEmail(String email) {
         Optional<UserModel> user = userRepository.findByEmail(email);
