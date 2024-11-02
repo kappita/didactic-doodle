@@ -6,35 +6,35 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tingeso.prestabanco.model.ClientModel;
+import tingeso.prestabanco.model.UserModel;
 import tingeso.prestabanco.repository.ClientRepository;
+import tingeso.prestabanco.repository.UserRepository;
 import tingeso.prestabanco.util.JwtUtil;
 
 import java.io.IOException;
 import java.util.Optional;
 
 @Component
-public class ClientJwtAuthenticationFilter extends OncePerRequestFilter {
+public class UserJwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     JwtUtil jwtUtil;
 
     @Autowired
-    ClientRepository clientRepository;
+    UserRepository userRepository;
 
 
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws ServletException, IOException {
-        System.out.println("filtrando cliente");
+        System.out.println("filtrando usuario");
         String auth_header = req.getHeader("Authorization");
         String jwt = null;
         Long id = null;
         Integer role = null;
-        System.out.println(auth_header);
 
         if (auth_header != null && auth_header.startsWith("Bearer ")) {
             System.out.println("Inicia con bearer");
@@ -48,7 +48,7 @@ public class ClientJwtAuthenticationFilter extends OncePerRequestFilter {
         Boolean is_client = role != null && role == 1;
         if (is_client && is_not_authenticated) {
             System.out.println("no ta autenticado y es cliente");
-            Optional<ClientModel> client = clientRepository.findById(id);
+            Optional<UserModel> client = userRepository.findById(id);
             if (client.isEmpty()) {
                 return;
             }

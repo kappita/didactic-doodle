@@ -17,6 +17,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tingeso.prestabanco.security.ExecutiveJwtAuthenticationFilter;
 import tingeso.prestabanco.security.UserAuthenticationProvider;
 import tingeso.prestabanco.security.ClientJwtAuthenticationFilter;
+import tingeso.prestabanco.security.UserJwtAuthenticationFilter;
 //import tingeso.prestabanco.security.ExecutiveAuthenticationProvider;
 
 
@@ -27,6 +28,9 @@ public class SecurityConfig {
 
     @Autowired
     private UserAuthenticationProvider userAuthenticationProvider;
+
+    @Autowired
+    private UserJwtAuthenticationFilter userJwtAuthenticationFilter;
 
     @Autowired
     private ClientJwtAuthenticationFilter clientJwtAuthenticationFilter;
@@ -55,11 +59,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/clients/register", "/clients/login").permitAll()
                 .requestMatchers("/clients/**",
-                                 "/mortgage_loan/{id}/cancel_mortgage",
-                                 "/mortgage_loan/{id}/add_documents",
-                                 "/mortgage_loan/{id}/set_final_approval",
+                                 "/mortgage_loan/*/cancel_mortgage",
+                                 "/mortgage_loan/*/add_documents",
+                                 "/mortgage_loan/*/set_final_approval",
                                  "/mortgage_loan",
-                                 "/mortgage_loan/{id}").authenticated())
+                                 "/simulator").authenticated())
                 .addFilterBefore(clientJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
 
@@ -67,7 +71,7 @@ public class SecurityConfig {
 
 
     @Bean
-    @Order(1)
+    @Order(3)
     public SecurityFilterChain executiveSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/executives/**")
@@ -75,25 +79,39 @@ public class SecurityConfig {
                 .cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/executives/login", "/executives/register").permitAll()
-                                                   .requestMatchers("/executives/**").authenticated()
-                        .requestMatchers("/mortgage_loan/{id}/set_pending_documentation",
-                                         "/mortgage_loan/{id}").authenticated())
+                .authorizeHttpRequests(auth -> auth.requestMatchers(
+                                "/executives/login",
+                                "/executives/register").permitAll()
+                .requestMatchers("/executives/**").authenticated()
+                        .requestMatchers("/mortgage_loan/*/set_pending_documentation").authenticated())
                 .addFilterBefore(executiveJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
-
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOrigin("*");
-        configuration.addAllowedMethod("*");
-        configuration.addAllowedHeader("*");
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    @Order(1)
+    public SecurityFilterChain commonSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/mortgage_loan/*")
+                .securityMatcher("/utils/loan_types")
+                .cors(cors -> cors.disable())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/mortgage_loan/*").hasAnyRole("CLIENT", "EXECUTIVE"))
+                .addFilterBefore(userJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
+    // @Bean
+    // public CorsConfigurationSource corsConfigurationSource() {
+    //     CorsConfiguration configuration = new CorsConfiguration();
+    //     configuration.addAllowedOrigin("*");
+    //     configuration.addAllowedMethod("*");
+    //     configuration.addAllowedHeader("*");
+    //     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    //     source.registerCorsConfiguration("/**", configuration);
+    //     return source;
+    // }
 
 
 

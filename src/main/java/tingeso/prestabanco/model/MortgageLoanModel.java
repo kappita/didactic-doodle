@@ -15,6 +15,15 @@ import java.util.List;
 
 import static java.lang.Math.pow;
 
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = MortgageLoanPendingDocumentationModel.class, name = "Pending documentation"),
+        @JsonSubTypes.Type(value = PreApprovedMortgageLoanModel.class, name = "Pre Approved")
+})
+
 @Setter
 @Getter
 @NoArgsConstructor

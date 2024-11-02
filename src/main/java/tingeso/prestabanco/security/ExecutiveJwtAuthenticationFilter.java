@@ -31,7 +31,7 @@ public class ExecutiveJwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws ServletException, IOException {
-        System.out.println("Filtrando");
+        System.out.println("Filtrando ejecutivo");
         String auth_header = req.getHeader("Authorization");
         String jwt = null;
         Long id = null;

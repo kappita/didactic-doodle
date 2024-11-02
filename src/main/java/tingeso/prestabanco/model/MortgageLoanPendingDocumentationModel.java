@@ -10,7 +10,9 @@ import tingeso.prestabanco.dto.PendingDocumentationRequest;
 import tingeso.prestabanco.repository.DocumentTypeRepository;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Entity
@@ -25,7 +27,7 @@ public class MortgageLoanPendingDocumentationModel extends MortgageLoanModel{
             joinColumns = @JoinColumn(name = "mortgage_id"),
             inverseJoinColumns = @JoinColumn(name = "document_type_id")
     )
-    private List<DocumentTypeModel> missing_documents = new ArrayList<>();
+    private Set<DocumentTypeModel> missing_documents = new HashSet<>();
     private String details;
 
     public MortgageLoanPendingDocumentationModel(MortgageLoanModel mortgage) {

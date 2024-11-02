@@ -17,6 +17,7 @@ public class LoanTypeModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String name;
     private Integer max_term;
     private Float min_interest_rate;
     private Float max_interest_rate;

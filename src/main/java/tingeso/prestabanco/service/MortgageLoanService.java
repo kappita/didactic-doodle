@@ -109,13 +109,20 @@ public class MortgageLoanService {
         if (!mortgage.getStatus().getId().equals("E1")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mortgage loan can not be set in evaluation yet");
         }
+
+        if (!req.getDocument_ids().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Should add at least one missing document");
+        }
+
         LoanStatusModel loan_status = getLoanStatus("E2");
         mortgage.setStatus(loan_status);
-        MortgageLoanPendingDocumentationModel pending = new MortgageLoanPendingDocumentationModel(mortgage);
-        List<DocumentTypeModel> docs = documentTypeRepository.findAllByIdIn(req.getDocument_ids());
-        pending.addMissingDocuments(docs);
-        pending.setDetails(req.getDetails());
-        pendingDocumentationRepository.save(pending);
+
+        // Reset pending documentation
+        pendingDocumentationRepository.deleteDocumentation(mortgage.getId());
+        for (Long id : req.getDocument_ids()) {
+            pendingDocumentationRepository.insertDocumentation(mortgage.getId(), id);
+        }
+
         mortgageLoanRepository.save(mortgage);
 
         return new SimpleResponse("Mortgage loan updated");
@@ -148,7 +155,7 @@ public class MortgageLoanService {
 
         int saving_score = sumSavingsScore(mortgage, evaluation.getSaving_capacity());
         if (saving_score > 4) {
-            return setApproved(mortgage_loan_id, executive);
+            return setPreApproved(mortgage_loan_id, executive);
         }
         if (saving_score > 2) {
             return setRequiresReview(mortgage_loan_id, executive);

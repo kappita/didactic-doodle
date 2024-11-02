@@ -1,5 +1,6 @@
 package tingeso.prestabanco.security;
 
+import org.hibernate.event.spi.SaveOrUpdateEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -45,6 +46,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
             throw new BadCredentialsException("Invalid email or password");
         }
         System.out.println("hay password");
+        System.out.println(user.get().getAuthorities());
         return new UsernamePasswordAuthenticationToken(user, password, user.get().getAuthorities());
     }
 

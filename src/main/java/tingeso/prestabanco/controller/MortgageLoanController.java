@@ -20,7 +20,7 @@ public class MortgageLoanController {
     private MortgageLoanService mortgageService;
 
     @PostMapping("")
-    public ResponseEntity<?> postMortgageLoan(@RequestBody MortgageLoanRequest req) {
+    public ResponseEntity<MortgageLoanModel> postMortgageLoan(@RequestBody MortgageLoanRequest req) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         ClientModel client = (ClientModel) auth.getPrincipal();
         return ResponseEntity.ok(mortgageService.receiveMortgage(req, client));
@@ -71,6 +71,13 @@ public class MortgageLoanController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         ExecutiveModel executive = (ExecutiveModel) auth.getPrincipal();
         return ResponseEntity.ok(mortgageService.evaluateMortgage(id, credit_evaluation, executive));
+    }
+
+    @PostMapping("/{id}/set_approved")
+    public ResponseEntity<SimpleResponse> setApproved(@PathVariable Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        ExecutiveModel executive = (ExecutiveModel) auth.getPrincipal();
+        return ResponseEntity.ok(mortgageService.setApproved(id, executive));
     }
 
 

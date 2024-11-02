@@ -55,17 +55,18 @@ CREATE TABLE executive (
 
 CREATE TABLE loan_type (
     id BIGINT PRIMARY KEY,
+    name TEXT NOT NULL,
     max_term INTEGER NOT NULL,
     min_interest_rate FLOAT NOT NULL,
     max_interest_rate FLOAT NOT NULL,
     max_financed_percentage FLOAT NOT NULL
 );
 
-INSERT INTO loan_type (id, max_term, min_interest_rate, max_interest_rate, max_financed_percentage)
-VALUES (1, 30, 0.035, 0.05, 0.8),
-       (2, 20, 0.04, 0.06, 0.7),
-       (3, 25, 0.05, 0.07, 0.6),
-       (4, 15, 0.045, 0.06, 0.5);
+INSERT INTO loan_type (id, name, max_term, min_interest_rate, max_interest_rate, max_financed_percentage)
+VALUES (1, 'Primera vivienda', 30, 0.035, 0.05, 0.8),
+       (2, 'Segunda vivienda', 20, 0.04, 0.06, 0.7),
+       (3, 'Propiedades comerciales', 25, 0.05, 0.07, 0.6),
+       (4, 'Remodelación', 15, 0.045, 0.06, 0.5);
 
 CREATE TABLE mortgage_loan (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -74,7 +75,7 @@ CREATE TABLE mortgage_loan (
     payment_term INTEGER NOT NULL,
     financed_amount INTEGER NOT NULL,
     interest_rate FLOAT NOT NULL,
-    status_id TEXT NOT NULL DEFAULT 0
+    status_id TEXT NOT NULL DEFAULT 'E1'
 );
 
 
@@ -85,23 +86,15 @@ CREATE TABLE loan_status (
 );
 
 INSERT INTO loan_status (id, name, description)
-    VALUES ('E1', 'En Revisión Inicial', 'La solicitud ha sido recibida y está en proceso de verificación
-preliminar.'),
-        ('E2', 'Pendiente de Documentación', 'La solicitud está en espera porque falta uno o más
-documentos importantes o se requiere información adicional del cliente.'),
-        ('E3', 'En Evaluación', 'La solicitud ha pasado la revisión inicial y está siendo evaluada por
-un ejecutivo.'),
-        ('E4', 'Pre-Aprobada', 'La solicitud ha sido evaluada y cumple con los criterios básicos del
-banco, por lo que ha sido pre-aprobada'),
-        ('E5', 'En Aprobación Final', 'El cliente ha aceptado las condiciones propuestas, y la
-solicitud se encuentra en proceso de aprobación final.'),
+    VALUES ('E1', 'En Revisión Inicial', 'La solicitud ha sido recibida y está en proceso de verificación preliminar.'),
+        ('E2', 'Pendiente de Documentación', 'La solicitud está en espera porque falta uno o más documentos importantes o se requiere información adicional del cliente.'),
+        ('E3', 'En Evaluación', 'La solicitud ha pasado la revisión inicial y está siendo evaluada por un ejecutivo.'),
+        ('E4', 'Pre-Aprobada', 'La solicitud ha sido evaluada y cumple con los criterios básicos del banco, por lo que ha sido pre-aprobada'),
+        ('E5', 'En Aprobación Final', 'El cliente ha aceptado las condiciones propuestas, y la solicitud se encuentra en proceso de aprobación final.'),
         ('E6', 'Aprobada', 'La solicitud ha sido aprobada y está lista para el desembolso.'),
-        ('E7', 'Rechazada', 'La solicitud ha sido evaluada y, tras el análisis, no cumple con los
-criterios establecidos por el banco.'),
-        ('E8', 'Cancelada por el Cliente', 'El cliente ha decidido cancelar la solicitud antes de que
-esta sea aprobada.'),
-        ('E9', 'En Desembolso', 'La solicitud ha sido aprobada y se está ejecutando el proceso de
-desembolso del monto aprobado');
+        ('E7', 'Rechazada', 'La solicitud ha sido evaluada y, tras el análisis, no cumple con los criterios establecidos por el banco.'),
+        ('E8', 'Cancelada por el Cliente', 'El cliente ha decidido cancelar la solicitud antes de que esta sea aprobada.'),
+        ('E9', 'En Desembolso', 'La solicitud ha sido aprobada y se está ejecutando el proceso de desembolso del monto aprobado');
 
 CREATE TABLE document_type (
     id BIGINT PRIMARY KEY,
@@ -187,6 +180,8 @@ CREATE TABLE pending_documentation (
     mortgage_id BIGINT NOT NULL,
     document_type_id BIGINT NOT NULL,
     FOREIGN KEY (mortgage_id) REFERENCES mortgage_loan_pending_documentation(id),
-    FOREIGN KEY (document_type_id) REFERENCES document_type(id)
+    FOREIGN KEY (document_type_id) REFERENCES document_type(id),
+    UNIQUE(mortgage_id, document_type_id)
 );
+
 
