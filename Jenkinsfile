@@ -1,102 +1,43 @@
 pipeline {
-    agent any
-
-    tools {
-        gradle 8.10-2
-    }
+    agent any    
 
     stages {
+
+        stage('Checkout repository') {
+            steps {
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/kappita/prestabanco-backend']])
+            }
+        }
+
+
         stage('Build backend') {
             steps {
-                git url: 'https://github.com/kappita/prestabanco-backend'
-                sh './gradlew build'
-                sh './gradlew test'
-            }
-        }
+                script {
+                    sh 'docker build -t kappappita/backend-prestabanco:latest .'
+                }
+                
+                withCredentials([string(credentialsId: 'dhpswid', variable: 'dhpsw')]) {
+                    script {
+                        sh 'docker login -u kappappita -p $dhpsw'
+                    }
+                }
 
-        stage('Build backend') {
-        }
-
-    }
-
-
-
-    environment {
-        // Specify any environment variables if needed
-        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk' // Adjust Java version if needed
-        GRADLE_HOME = '/usr/local/gradle' // Path to Gradle, if not set globally
-        PATH = "${GRADLE_HOME}/bin:${env.PATH}"
-    }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                // Checkout the code from the repository
-                git branch: 'main', url: 'https://github.com/your-repo/your-spring-boot-app.git'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                // Build the application using Gradle
-                sh './gradlew clean build'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                // Run tests with Gradle
-                sh './gradlew test'
-            }
-
-            post {
-                // Archive test results
-                always {
-                    junit '**/build/test-results/test/*.xml'
+                script {
+                    sh 'docker push kappappita/backend-prestabanco:latest'
                 }
             }
         }
 
-        stage('Package') {
+        stage('Test backend') {
             steps {
-                // Package the application into a JAR file
-                sh './gradlew bootJar'
-            }
-
-            post {
-                // Archive the JAR file as a build artifact
-                always {
-                    archiveArtifacts artifacts: 'build/libs/*.jar', allowEmptyArchive: true
+                script {
+                    if (isUnix()) {
+                        sh './gradlew test'
+                    } else {
+                        bat './gradlew test'
+                    }
                 }
             }
-        }
-
-        stage('Deploy') {
-            when {
-                branch 'main'
-            }
-            steps {
-                // Deploy the application, e.g., copy to a server or use Docker
-                // Customize this step based on your deployment needs
-
-                // Example: SSH to deploy the JAR file to a remote server
-                sshagent(['your-ssh-credentials-id']) {
-                    sh """
-                    scp build/libs/your-spring-boot-app.jar user@your-server:/path/to/deploy/
-                    ssh user@your-server 'nohup java -jar /path/to/deploy/your-spring-boot-app.jar &'
-                    """
-                }
-            }
-        }
-    }
-
-    post {
-        // Notify on build success or failure
-        success {
-            echo 'Build and deployment successful!'
-        }
-        failure {
-            echo 'Build or deployment failed.'
         }
     }
 }
