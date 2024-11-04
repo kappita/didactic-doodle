@@ -20,7 +20,7 @@ RUN ./gradlew bootJar
 
 
 # Expose the application port
-EXPOSE 8080
+EXPOSE 9090
 
 # Run the Spring Boot application
 CMD ["java", "-jar", "build/libs/prestabanco-0.0.1-SNAPSHOT.jar"]

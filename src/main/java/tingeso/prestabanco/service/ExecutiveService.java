@@ -28,8 +28,6 @@ import java.util.Optional;
 
 @Component
 public class ExecutiveService {
-    @Autowired
-    private AuthenticationManager authenticationManager;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -61,38 +59,27 @@ public class ExecutiveService {
             throw new RuntimeException("Role not found");
         }
         executive.setRole(role.get());
-
-        try {
-            executiveRepository.save(executive);
-        } catch (Exception e) {
-            // Log the error or handle it accordingly
-            throw new RuntimeException("Error saving executive", e);
-        }
+        executiveRepository.save(executive);
         RegisterResponse registerResponse = new RegisterResponse("Ejecutivo creado satisfactoriamente");
 
         return Optional.of(registerResponse);
     }
 
     public Optional<LoginResponse> login(LoginRequest req) {
-        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_EXECUTIVE"));
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        req.getEmail(),
-                        req.getPassword(),
-                        authorities
-                )
-        );
 
-        Optional<ExecutiveModel> client = executiveRepository.findByEmail(req.getEmail());
-        if(client.isEmpty()) {
+        Optional<ExecutiveModel> executive = executiveRepository.findByEmail(req.getEmail());
+        if(executive.isEmpty()) {
             throw new RuntimeException("Invalid email or password");
         }
 
+        if (!passwordEncoder.matches(req.getPassword(), executive.get().getPassword())) {
+            return Optional.empty();
+        }
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", 2);
-        String token = jwtUtil.createToken(claims, client.get().getId().toString());
-        LoginResponse res = new LoginResponse(token, client.get().getName());
+        String token = jwtUtil.createToken(claims, executive.get().getId().toString());
+        LoginResponse res = new LoginResponse(token, executive.get().getName());
         return Optional.of(res);
     }
 

@@ -46,12 +46,10 @@ public class ClientService {
 
     @Autowired
     private JwtUtil jwtUtil;
-    @Autowired
-    private AuthenticationManager authenticationManager;
+
 
 
     public Optional<RegisterResponse> register(ClientModel client) {
-        System.out.println("holaregister");
         Boolean details_validation = validateClientDetails(client);
         if (!details_validation) {
             return Optional.empty();
@@ -65,7 +63,6 @@ public class ClientService {
             throw new RuntimeException("Role not found");
         }
         client.setRole(role.get());
-        System.out.println(client.toString());
         clientRepository.save(client);
         RegisterResponse registerResponse = new RegisterResponse("Cliente creado satisfactoriamente");
 
@@ -73,19 +70,13 @@ public class ClientService {
     }
 
     public Optional<LoginResponse> login(LoginRequest req) {
-        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_CLIENT"));
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        req.getEmail(),
-                        req.getPassword(),
-                        authorities
-
-
-                )
-        );
 
         Optional<ClientModel> client = clientRepository.findByEmail(req.getEmail());
         if(client.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (!passwordEncoder.matches(req.getPassword(), client.get().getPassword())) {
             return Optional.empty();
         }
 
@@ -150,8 +141,7 @@ public class ClientService {
 
     private Boolean validateBirthdate(Date birthdate) {
         int year = birthdate.toLocalDate().getYear();
-        System.out.println(birthdate.toString());
-        System.out.println(year);
+
         return year > 1900;
     };
 

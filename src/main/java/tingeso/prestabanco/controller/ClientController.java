@@ -13,11 +13,13 @@ import tingeso.prestabanco.model.LoanTypeModel;
 import tingeso.prestabanco.model.MortgageLoanModel;
 import tingeso.prestabanco.service.ClientService;
 import tingeso.prestabanco.service.LoanTypeService;
+import tingeso.prestabanco.util.JwtUtil;
 
 import java.util.List;
 import java.util.Optional;
 
 @RestController()
+@CrossOrigin("*")
 @RequestMapping("/clients")
 public class ClientController {
     @Autowired
@@ -25,6 +27,9 @@ public class ClientController {
 
     @Autowired
     private LoanTypeService loanTypeService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
@@ -36,14 +41,12 @@ public class ClientController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ClientModel> getMe() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
+    public ResponseEntity<ClientModel> getMe(@RequestHeader("Authorization") String authorization) {
+        Optional<ClientModel> client = jwtUtil.validateClient(authorization);
+        if (client.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        System.out.println(auth.toString());
-        ClientModel client = (ClientModel) auth.getPrincipal();
-        return ResponseEntity.ok(client);
+        return ResponseEntity.ok(client.get());
     }
 
     @PostMapping("/register")
@@ -57,19 +60,18 @@ public class ClientController {
     }
 
     @GetMapping("/me/mortgage_loans")
-    public ResponseEntity<List<MortgageLoanModel>> getMortgageLoans() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
+    public ResponseEntity<List<MortgageLoanModel>> getMortgageLoans(@RequestHeader("Authorization") String authorization) {
+        Optional<ClientModel> client = jwtUtil.validateClient(authorization);
+        if (client.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        ClientModel client = (ClientModel) auth.getPrincipal();
-        return ResponseEntity.ok(clientService.getMortgageRequests(client));
+        return ResponseEntity.ok(clientService.getMortgageRequests(client.get()));
     }
 
     @GetMapping("/loan_types")
-    public ResponseEntity<List<LoanTypeModel>> getLoanTypes() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
+    public ResponseEntity<List<LoanTypeModel>> getLoanTypes(@RequestHeader("Authorization") String authorization) {
+        Optional<ClientModel> client = jwtUtil.validateClient(authorization);
+        if (client.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 

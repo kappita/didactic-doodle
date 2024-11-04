@@ -12,6 +12,7 @@ import tingeso.prestabanco.model.ClientModel;
 import tingeso.prestabanco.service.MortgageLoanSimulationService;
 
 @RestController
+@CrossOrigin("*")
 @RequestMapping("/simulator")
 public class MortgageSimulationController {
     @Autowired

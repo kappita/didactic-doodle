@@ -170,16 +170,12 @@ CREATE TABLE preapproved_mortgage_loan (
     total_cost BIGINT NOT NULL
 );
 
-CREATE TABLE mortgage_loan_pending_documentation (
-    id BIGINT PRIMARY KEY REFERENCES mortgage_loan(id),
-    details TEXT
-);
 
 CREATE TABLE pending_documentation (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     mortgage_id BIGINT NOT NULL,
     document_type_id BIGINT NOT NULL,
-    FOREIGN KEY (mortgage_id) REFERENCES mortgage_loan_pending_documentation(id),
+    FOREIGN KEY (mortgage_id) REFERENCES mortgage_loan(id),
     FOREIGN KEY (document_type_id) REFERENCES document_type(id),
     UNIQUE(mortgage_id, document_type_id)
 );

@@ -12,15 +12,21 @@ import tingeso.prestabanco.dto.RegisterResponse;
 import tingeso.prestabanco.model.ClientModel;
 import tingeso.prestabanco.model.ExecutiveModel;
 import tingeso.prestabanco.service.ExecutiveService;
+import tingeso.prestabanco.util.JwtUtil;
 
 import java.util.Optional;
 
 @RestController
+@CrossOrigin("*")
 @RequestMapping("/executives")
 public class ExecutiveController {
     @Autowired
     private ExecutiveService executiveService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @CrossOrigin("*")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         Optional<LoginResponse> res = executiveService.login(loginRequest);
@@ -31,16 +37,15 @@ public class ExecutiveController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ExecutiveModel> getMe() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
+    public ResponseEntity<ExecutiveModel> getMe(@RequestHeader("Authorization") String authorization) {
+        Optional<ExecutiveModel> executive = jwtUtil.validateExecutive(authorization);
+        if (executive.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        System.out.println(auth.toString());
-        ExecutiveModel exec = (ExecutiveModel) auth.getPrincipal();
-        return ResponseEntity.ok(exec);
+        return ResponseEntity.ok(executive.get());
     }
 
+    @CrossOrigin("*")
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@RequestBody ExecutiveModel exec) {
         System.out.println("hola endpoint");

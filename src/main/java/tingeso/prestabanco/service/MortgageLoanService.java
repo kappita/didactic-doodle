@@ -15,8 +15,10 @@ import tingeso.prestabanco.model.*;
 import tingeso.prestabanco.repository.*;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.*;
 import java.sql.Date;
+import java.util.stream.Collectors;
 
 @Service
 public class MortgageLoanService {
@@ -26,8 +28,8 @@ public class MortgageLoanService {
     @Autowired
     MortgageLoanReviewRepository mortgageLoanReviewRepository;
 
-    @Autowired
-    MortgageLoanPendingDocumentationRepository pendingDocumentationRepository;
+//    @Autowired
+//    MortgageLoanPendingDocumentationRepository pendingDocumentationRepository;
 
     @Autowired
     DocumentTypeRepository documentTypeRepository;
@@ -44,21 +46,21 @@ public class MortgageLoanService {
     float quotaIncomeThreshold;
 
 
-    public MortgageLoanModel getMortgageLoan(Long mortgage_loan_id, Authentication auth) {
+    public MortgageLoanModel getMortgageLoan(Long mortgage_loan_id, UserModel user) {
         MortgageLoanModel mortgage = getMortgageLoan(mortgage_loan_id);
-        Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
-        if (authorities.contains(new SimpleGrantedAuthority("ROLE_CLIENT"))) {
-            ClientModel client = (ClientModel) auth.getPrincipal();
-            if (!mortgage.getClient().getId().equals(client.getId())) {
+        if (user.getRole().getName().equals("CLIENT")) {
+            if (!mortgage.getClient().getId().equals(user.getId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN);
             }
         }
-        if (mortgage.getStatus().getId().equals("E2")) {
-            System.out.println("le faltan docs");
-            return pendingDocumentationRepository.getReferenceById(mortgage_loan_id);
-        }
         return mortgage;
 
+    }
+
+    public List<MortgageLoanModel> getAllReviewable() {
+        List<MortgageLoanModel> mortgages = mortgageLoanRepository.findAll();
+        mortgages = mortgages.stream().filter(e -> !e.getStatus().getId().equals("E9")).toList();
+        return mortgages;
     }
 
 
@@ -110,7 +112,7 @@ public class MortgageLoanService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mortgage loan can not be set in evaluation yet");
         }
 
-        if (!req.getDocument_ids().isEmpty()) {
+        if (req.getDocument_ids().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Should add at least one missing document");
         }
 
@@ -118,9 +120,9 @@ public class MortgageLoanService {
         mortgage.setStatus(loan_status);
 
         // Reset pending documentation
-        pendingDocumentationRepository.deleteDocumentation(mortgage.getId());
+        mortgageLoanRepository.deleteDocumentation(mortgage.getId());
         for (Long id : req.getDocument_ids()) {
-            pendingDocumentationRepository.insertDocumentation(mortgage.getId(), id);
+            mortgageLoanRepository.insertDocumentation(mortgage.getId(), id);
         }
 
         mortgageLoanRepository.save(mortgage);
@@ -149,18 +151,23 @@ public class MortgageLoanService {
 
         try {
             validateCredit(mortgage, evaluation.getCredit_validation());
+            System.out.println("Credito validado");
         } catch (Exception e) {
             return setRejected(mortgage_loan_id, executive);
         }
 
         int saving_score = sumSavingsScore(mortgage, evaluation.getSaving_capacity());
+        System.out.println(saving_score);
         if (saving_score > 4) {
+            System.out.println("PREAPROBADO");
             return setPreApproved(mortgage_loan_id, executive);
         }
         if (saving_score > 2) {
+            System.out.println("REQUIERE REVISION");
             return setRequiresReview(mortgage_loan_id, executive);
         }
 
+        System.out.println("REHCAZADO POR DESCARTE");
         return setRejected(mortgage_loan_id, executive);
     }
 
@@ -204,6 +211,7 @@ public class MortgageLoanService {
     }
 
     public SimpleResponse setRejected(Long mortgage_loan_id, ExecutiveModel executive) {
+        System.out.println("RECHAZADO");
         MortgageLoanModel mortgage = getMortgageLoan(mortgage_loan_id);
         LoanStatusModel request_status = mortgage.getStatus();
         if (!request_status.getId().equals("E3")) {
@@ -267,19 +275,23 @@ public class MortgageLoanService {
     private void validateQuotaIncomeRelation(MortgageLoanModel mortgage, Long income) {
         Long monthly_quota = mortgage.getMonthlyQuota();
         float relation = (float) monthly_quota / income;
-        if (relation < quotaIncomeThreshold) {
+        System.out.println(relation);
+        if (relation > quotaIncomeThreshold) {
+            System.out.println("LA RELACION COUTA INCOME ES MUY BAJA");
             throw new IllegalArgumentException("Quota exceeded");
         }
     }
 
     private void validateCreditHistory(Boolean has_acceptable_history) {
         if (!has_acceptable_history) {
+            System.out.println("NO TIENE CREDITO");
             throw new IllegalArgumentException("Credit history not valid");
         }
     }
 
     private void validateFinancialStability(Boolean has_financial_stability) {
         if (!has_financial_stability) {
+            System.out.println("NO TIENE ESTABILIDAD");
             throw new IllegalArgumentException("Financial stability not valid");
         }
     }
@@ -287,7 +299,8 @@ public class MortgageLoanService {
     private void validateDebtIncomeRelation(MortgageLoanModel mortgage, Long income, Long monthly_debt) {
         Long monthly_quota = mortgage.getMonthlyQuota();
         float relation = (float) (monthly_quota + monthly_debt) / income;
-        if (relation < quotaIncomeThreshold) {
+        if (relation > quotaIncomeThreshold) {
+            System.out.println("MUCHA DEUDA");
             throw new IllegalArgumentException("Debt exceeded");
         }
     }
@@ -295,14 +308,18 @@ public class MortgageLoanService {
     private void validateMaxFinance(MortgageLoanModel mortgage_loan, Long property_value) {
         float max_finance = mortgage_loan.getLoan_type().getMax_financed_percentage() * property_value;
         if (mortgage_loan.getFinanced_amount() > max_finance) {
+            System.out.println("ES DEMASIADA FINANCIACION");
             throw new IllegalArgumentException("Financed amount exceeded");
         }
     }
 
     private void validateMaxAge(MortgageLoanModel mortgage_loan, Date validated_birthdate) {
-        int client_years = validated_birthdate.toLocalDate().getYear();
+        int client_birth_year = validated_birthdate.toLocalDate().getYear();
+        int current_year = LocalDate.now().getYear();
+        int client_years = current_year - client_birth_year;
         int payment_term = mortgage_loan.getPayment_term();
         if (client_years + payment_term > 70) {
+            System.out.println("MUY VIEJO");
             throw new IllegalArgumentException("Client wont pay before jubilation");
         }
     }
@@ -313,7 +330,7 @@ public class MortgageLoanService {
         validateFinancialStability(credit_validation.getHas_financial_stability());
         validateDebtIncomeRelation(mortgage_loan, credit_validation.getClient_income(), credit_validation.getMonthly_debt());
         validateMaxFinance(mortgage_loan, credit_validation.getProperty_value());
-        validateMaxAge(mortgage_loan, credit_validation.getValidated_birthdate());
+        validateMaxAge(mortgage_loan, mortgage_loan.getClient().getBirth_date());
     }
 
     private int sumSavingsScore(MortgageLoanModel mortgage, SavingCapacity saving_capacity) {
@@ -331,15 +348,15 @@ public class MortgageLoanService {
 
     private boolean checkMinimumBalance(MortgageLoanModel mortgage_loan, Long balance) {
         float relation = (float) balance / mortgage_loan.getFinanced_amount();
-        return !(relation > 0.1);
+        return relation > 0.1;
     }
 
     private boolean checkBalanceLongevityRelation(MortgageLoanModel mortgage_loan, Long balance, int longevity) {
         float relation = (float) balance / mortgage_loan.getFinanced_amount();
         if (longevity < 2) {
-            return relation < 0.2;
+            return relation > 0.2;
         } else {
-            return relation < 0.1;
+            return relation > 0.1;
         }
     }
 
@@ -387,7 +404,10 @@ public class MortgageLoanService {
 
         return mortgage;
     }
+
 }
+
+
 
 
 

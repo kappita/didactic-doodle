@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Collection;
 import java.util.List;
@@ -27,7 +26,12 @@ public class UserModel {
     @JoinColumn(name = "role_id")
     protected RoleModel role;
 
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(() -> "ROLE_" + this.role.getName()); // Return the role as an authority
+    public UserModel(UserModel user) {
+        this.id = user.getId();
+        this.email = user.getEmail();
+        this.password = user.getPassword();
+        this.role = user.getRole();
+
     }
+
 }

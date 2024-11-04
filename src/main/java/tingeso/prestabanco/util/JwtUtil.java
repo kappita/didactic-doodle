@@ -7,6 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import tingeso.prestabanco.model.ClientModel;
+import tingeso.prestabanco.model.ExecutiveModel;
+import tingeso.prestabanco.model.UserModel;
+import tingeso.prestabanco.repository.ClientRepository;
+import tingeso.prestabanco.repository.ExecutiveRepository;
+import tingeso.prestabanco.repository.UserRepository;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -14,6 +20,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 @Component
@@ -21,6 +28,14 @@ public class JwtUtil {
     @Autowired
     SecretKey secretKey;
 
+    @Autowired
+    ClientRepository clientRepository;
+
+    @Autowired
+    ExecutiveRepository executiveRepository;
+
+    @Autowired
+    UserRepository userRepository;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -58,7 +73,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    public Boolean validateToken(String token, String username) {
+    public Boolean validateToken(String token) {
         try{
             Jws<Claims> jws = Jwts
                     .parser()
@@ -76,6 +91,48 @@ public class JwtUtil {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public Optional<ClientModel> validateClient(String header) {
+        String[] parts = header.split(" ");
+        if (parts.length != 2) {
+            return Optional.empty();
+        }
+
+        if (!validateToken(parts[1])) {
+            return Optional.empty();
+        }
+
+        Long id = Long.parseLong(extractClaim(parts[1], Claims::getSubject));
+        Optional<ClientModel> client = clientRepository.findById(id);
+        return client;
+    }
+
+
+    public Optional<ExecutiveModel> validateExecutive(String header) {
+        String[] parts = header.split(" ");
+        if (parts.length != 2) {
+            return Optional.empty();
+        }
+        if (!validateToken(parts[1])) {
+            return Optional.empty();
+        }
+        Long id = Long.parseLong(extractClaim(parts[1], Claims::getSubject));
+        Optional<ExecutiveModel> executive = executiveRepository.findById(id);
+        return executive;
+    }
+
+    public Optional<UserModel> validateUser(String header) {
+        String[] parts = header.split(" ");
+        if (parts.length != 2) {
+            return Optional.empty();
+        }
+        if (!validateToken(parts[1])) {
+            return Optional.empty();
+        }
+        Long id = Long.parseLong(extractClaim(parts[1], Claims::getSubject));
+        Optional<UserModel> user = userRepository.findById(id);
+        return user;
     }
 
 

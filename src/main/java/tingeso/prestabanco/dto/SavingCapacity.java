@@ -1,9 +1,11 @@
 package tingeso.prestabanco.dto;
 
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
+@AllArgsConstructor
 public class SavingCapacity {
     private Long client_balance;
     private boolean has_consistent_savings;

@@ -11,7 +11,9 @@ import tingeso.prestabanco.dto.MortgageLoanRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static java.lang.Math.pow;
 
@@ -20,7 +22,7 @@ import static java.lang.Math.pow;
         include = JsonTypeInfo.As.PROPERTY,
         property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = MortgageLoanPendingDocumentationModel.class, name = "Pending documentation"),
+//        @JsonSubTypes.Type(value = MortgageLoanPendingDocumentationModel.class, name = "Pending documentation"),
         @JsonSubTypes.Type(value = PreApprovedMortgageLoanModel.class, name = "Pre Approved")
 })
 
@@ -29,6 +31,7 @@ import static java.lang.Math.pow;
 @NoArgsConstructor
 @AllArgsConstructor
 @Inheritance(strategy = InheritanceType.JOINED)
+@Builder(toBuilder = true)
 @Entity(name = "mortgage_loan")
 public class MortgageLoanModel {
     @Id
@@ -55,6 +58,14 @@ public class MortgageLoanModel {
     @ManyToOne
     @JoinColumn(name = "status_id")
     protected LoanStatusModel status;
+
+    @ManyToMany(cascade = {CascadeType.DETACH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH})
+    @JoinTable(
+            name = "pending_documentation",
+            joinColumns = @JoinColumn(name = "mortgage_id"),
+            inverseJoinColumns = @JoinColumn(name = "document_type_id")
+    )
+    private List<DocumentTypeModel> missing_documents;
 
     public MortgageLoanModel(MortgageLoanRequest request,
                              ClientModel client,
