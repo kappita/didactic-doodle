@@ -20,8 +20,8 @@ public class PreApprovedMortgageLoanModel extends MortgageLoanModel {
 
     public PreApprovedMortgageLoanModel(MortgageLoanModel mortgage) {
         super(mortgage);
-        this.administration_fee = Long.parseLong(String.valueOf(mortgage.getFinanced_amount() * 0.01));
-        this.credit_insurance_fee = Long.parseLong(String.valueOf(mortgage.financed_amount * 0.0003));
+        this.administration_fee = Math.round(mortgage.getFinanced_amount() * 0.01);
+        this.credit_insurance_fee = Math.round(mortgage.financed_amount * 0.0003);
         this.total_monthly_cost = mortgage.getMonthlyQuota() + fire_insurance_fee + credit_insurance_fee;
         this.total_cost = (total_monthly_cost * (payment_term * 12)) + administration_fee;
     }

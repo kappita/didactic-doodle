@@ -73,7 +73,7 @@ public class ExecutiveService {
         }
 
         if (!passwordEncoder.matches(req.getPassword(), executive.get().getPassword())) {
-            return Optional.empty();
+            throw new RuntimeException("Invalid email or password");
         }
 
         Map<String, Object> claims = new HashMap<>();

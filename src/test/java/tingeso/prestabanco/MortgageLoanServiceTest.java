@@ -43,7 +43,10 @@ public class MortgageLoanServiceTest {
     private LoanStatusRepository loanStatusRepository;
 
     @Mock
-    private MortgageLoanPendingDocumentationRepository pendingDocumentationRepository;
+    private MortgageLoanReviewRepository mortgageLoanReviewRepository;
+
+    @Mock
+    private PreApprovedMortgageLoanRepository preApprovedMortgageLoanRepository;
 
     @InjectMocks
     private MortgageLoanService mortgageLoanService;
@@ -81,9 +84,6 @@ public class MortgageLoanServiceTest {
 
     private MortgageLoanModel mockMortgageLoanModel;
 
-    private Authentication authentication_client_1;
-    private Authentication authentication_client_2;
-
 
     @BeforeEach
     public void setup() {
@@ -95,12 +95,10 @@ public class MortgageLoanServiceTest {
         mockUser_3 = new UserModel(3L, "usuario3@testing.com", "ClaveCorrecta123.", mockExecutiveRole);
         mockUser_4 = new UserModel(4L, "usuario4@testing.com", "ClaveCorrecta123.", mockExecutiveRole);
 
-        mockClient_1 = new ClientModel(mockUser_1, "Ignacio", "Lara", new Date(2002, 1, 4), "otro", "Chilena", "Diinf usach", "1234567");
-        mockClient_2 = new ClientModel(mockUser_2, "Alcides", "Quispe", new Date(2002, 1, 4), "otro", "Chilena", "Diinf usach", "1234567");
+        mockClient_1 = new ClientModel(mockUser_1, "Ignacio", "Lara", new Date(102, 1, 4), "otro", "Chilena", "Diinf usach", "1234567");
+        mockClient_2 = new ClientModel(mockUser_2, "Alcides", "Quispe", new Date(102, 1, 4), "otro", "Chilena", "Diinf usach", "1234567");
         mockExecutive_1 = new ExecutiveModel(mockUser_3, "Ejecutivo 1");
         mockExecutive_2 = new ExecutiveModel(mockUser_4, "Ejecutivo 2");
-        authentication_client_1 = new UsernamePasswordAuthenticationToken(mockUser_1, "ClaveCorrecta123.", mockUser_1.getAuthorities());
-        authentication_client_2 = new UsernamePasswordAuthenticationToken(mockUser_2, "ClaveCorrecta123.", mockUser_2.getAuthorities());
 
         mockDocumentType_1 = new DocumentTypeModel(1L, "Comprobante de Ingresos", null);
         mockDocumentType_2 = new DocumentTypeModel(2L, "Certificado de Avalúo", null);
@@ -116,9 +114,19 @@ public class MortgageLoanServiceTest {
         mockLoanStatus_8 = new LoanStatusModel("E8", "Cancelada por el Cliente", "El cliente ha decidido cancelar la solicitud antes de que esta sea aprobada.");
         mockLoanStatus_9 = new LoanStatusModel("E9", "En Desembolso", "La solicitud ha sido aprobada y se está ejecutando el proceso de desembolso del monto aprobado");
 
+        when(loanStatusRepository.findById("E1")).thenReturn(Optional.of(mockLoanStatus_1));
+        when(loanStatusRepository.findById("E2")).thenReturn(Optional.of(mockLoanStatus_2));
+        when(loanStatusRepository.findById("E3")).thenReturn(Optional.of(mockLoanStatus_3));
+        when(loanStatusRepository.findById("E4")).thenReturn(Optional.of(mockLoanStatus_4));
+        when(loanStatusRepository.findById("E5")).thenReturn(Optional.of(mockLoanStatus_5));
+        when(loanStatusRepository.findById("E6")).thenReturn(Optional.of(mockLoanStatus_6));
+        when(loanStatusRepository.findById("E7")).thenReturn(Optional.of(mockLoanStatus_7));
+        when(loanStatusRepository.findById("E8")).thenReturn(Optional.of(mockLoanStatus_8));
+        when(loanStatusRepository.findById("E9")).thenReturn(Optional.of(mockLoanStatus_9));
+
         mockLoanType_1 = new LoanTypeModel(1L, "Primera vivienda", 30, 0.035F, 0.05F, 0.8F, List.of(mockDocumentType_1, mockDocumentType_2, mockDocumentType_3));
 
-        mockMortgageLoanModel = new MortgageLoanModel(1L, mockClient_1, mockLoanType_1, 15, 800000L, 0.04F, new ArrayList<>(), mockLoanStatus_1);
+        mockMortgageLoanModel = new MortgageLoanModel(1L, mockClient_1, mockLoanType_1, 15, 100000L, 0.04F, new ArrayList<>(), mockLoanStatus_1, new ArrayList<>());
     }
 
     @Test
@@ -135,9 +143,31 @@ public class MortgageLoanServiceTest {
     }
 
     @Test
+    public void testGetMortgageLoanNotExisting() {
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.empty());
+        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.getMortgageLoan(1L, mockUser_1));
+    }
+
+    @Test
+    public void testGetAllReviewable() {
+        when(mortgageLoanRepository.findAll()).thenReturn(new ArrayList<>());
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.getAllReviewable());
+    }
+
+    @Test
     public void testReceiveMortgageInvalidType() {
         MortgageLoanRequest req = new MortgageLoanRequest(69L, 15, 800000L, 0.05F);
         when(loanTypeRepository.findById(69L)).thenReturn(Optional.empty());
+        MortgageLoanModel testMortgage = new MortgageLoanModel(req, mockClient_1, mockLoanStatus_1, mockLoanType_1);
+        when(mortgageLoanRepository.save(testMortgage)).thenReturn(testMortgage);
+        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.receiveMortgage(req, mockClient_1));
+    }
+
+    @Test
+    public void testReceiveMortgageNoStatus() {
+        MortgageLoanRequest req = new MortgageLoanRequest(69L, 15, 800000L, 0.05F);
+        when(loanTypeRepository.findById(69L)).thenReturn(Optional.empty());
+        when(loanStatusRepository.findById("E1")).thenReturn(Optional.empty());
         MortgageLoanModel testMortgage = new MortgageLoanModel(req, mockClient_1, mockLoanStatus_1, mockLoanType_1);
         when(mortgageLoanRepository.save(testMortgage)).thenReturn(testMortgage);
         Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.receiveMortgage(req, mockClient_1));
@@ -156,6 +186,7 @@ public class MortgageLoanServiceTest {
     @Test
     public void testSetPendingDocumentationWrongStatus() {
         PendingDocumentationRequest req = new PendingDocumentationRequest(List.of(1L), "");
+        mockMortgageLoanModel.setStatus(mockLoanStatus_2);
         when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
         Assertions.assertThrows(ResponseStatusException.class, () -> {mortgageLoanService.setPendingDocumentation(1L, req, mockExecutive_1);});
 
@@ -198,7 +229,7 @@ public class MortgageLoanServiceTest {
 
     @Test
     public void testEvaluateMortgageWrongStatus() {
-        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000L);
+        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000000L);
         SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 5, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
@@ -207,7 +238,7 @@ public class MortgageLoanServiceTest {
 
     @Test
     public void testEvaluateMortgageWrongIncome() {
-        CreditValidation cValidation = new CreditValidation(100L, true, true, 0L, 1000L);
+        CreditValidation cValidation = new CreditValidation(1L, true, true, 0L, 1000000L);
         SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 5, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         mockMortgageLoanModel.setStatus(mockLoanStatus_3);
@@ -218,7 +249,7 @@ public class MortgageLoanServiceTest {
 
     @Test
     public void testEvaluateMortgageWrongHistory() {
-        CreditValidation cValidation = new CreditValidation(99999999L, false, true, 0L, 1000L);
+        CreditValidation cValidation = new CreditValidation(99999999L, false, true, 0L, 1000000L);
         SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 5, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         mockMortgageLoanModel.setStatus(mockLoanStatus_3);
@@ -229,7 +260,7 @@ public class MortgageLoanServiceTest {
 
     @Test
     public void testEvaluateMortgageWrongStability() {
-        CreditValidation cValidation = new CreditValidation(99999999L, true, false, 0L, 1000L);
+        CreditValidation cValidation = new CreditValidation(99999999L, true, false, 0L, 1000000L);
         SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 5, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         mockMortgageLoanModel.setStatus(mockLoanStatus_3);
@@ -240,7 +271,7 @@ public class MortgageLoanServiceTest {
 
     @Test
     public void testEvaluateMortgageWrongIncomeRelation() {
-        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 9999999999L, 1000L);
+        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 9999999999L, 1000000L);
         SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 5, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         mockMortgageLoanModel.setStatus(mockLoanStatus_3);
@@ -252,7 +283,7 @@ public class MortgageLoanServiceTest {
     @Test
     public void testEvaluateMortgageWrongFinance() {
         CreditValidation cValidation = new CreditValidation(999999L, true, true, 0L, 100L);
-        SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 5, true);
+        SavingCapacity sCapacity = new SavingCapacity(0L, true, true, 5, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         mockMortgageLoanModel.setStatus(mockLoanStatus_3);
         when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
@@ -263,7 +294,9 @@ public class MortgageLoanServiceTest {
     // TODO
     @Test
     public void testEvaluateMortgageWrongMaxAge() {
-        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000L);
+        mockClient_1.setBirth_date(new Date(10, 1, 1));
+        mockMortgageLoanModel.setClient(mockClient_1);
+        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000000L);
         SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 5, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         mockMortgageLoanModel.setStatus(mockLoanStatus_3);
@@ -271,10 +304,23 @@ public class MortgageLoanServiceTest {
         Assertions.assertDoesNotThrow(() -> mortgageLoanService.evaluateMortgage(1L, req, mockExecutive_1));
     }
 
+
     @Test
-    public void testEvaluateMortgageWrongMinBalance() {
-        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000L);
-        SavingCapacity sCapacity = new SavingCapacity(0L, true, true, 5, true);
+    public void testEvaluateMortgageLongevity1() {
+        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000000L);
+        SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 1, true);
+        CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
+        mockMortgageLoanModel.setStatus(mockLoanStatus_3);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        when(mortgageLoanReviewRepository.findById(1L)).thenReturn(Optional.empty());
+
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.evaluateMortgage(1L, req, mockExecutive_1));
+    }
+
+    @Test
+    public void testEvaluateMortgageLongevity2() {
+        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000000L);
+        SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 10, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         mockMortgageLoanModel.setStatus(mockLoanStatus_3);
         when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
@@ -282,13 +328,116 @@ public class MortgageLoanServiceTest {
     }
 
     @Test
-    public void testEvaluateMortgageWrongLongevity() {
-        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000L);
-        SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 0, true);
+    public void testEvaluateCorrect() {
+        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000000L);
+        SavingCapacity sCapacity = new SavingCapacity(100000000L, true, true, 10, true);
         CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
         mockMortgageLoanModel.setStatus(mockLoanStatus_3);
         when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
         Assertions.assertDoesNotThrow(() -> mortgageLoanService.evaluateMortgage(1L, req, mockExecutive_1));
     }
 
+    @Test
+    public void testEvaluateRequiresReview() {
+        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000000L);
+        SavingCapacity sCapacity = new SavingCapacity(100000000L, false, true, 10, true);
+        CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
+        mockMortgageLoanModel.setStatus(mockLoanStatus_3);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.evaluateMortgage(1L, req, mockExecutive_1));
+    }
+
+    @Test
+    public void testEvaluateRejected() {
+        CreditValidation cValidation = new CreditValidation(99999999L, true, true, 0L, 1000000L);
+        SavingCapacity sCapacity = new SavingCapacity(0L, false, false, 10, false);
+        CreditEvaluation req = new CreditEvaluation(cValidation, sCapacity);
+        mockMortgageLoanModel.setStatus(mockLoanStatus_3);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.evaluateMortgage(1L, req, mockExecutive_1));
+    }
+
+    @Test
+    public void testSetFinalApprovalWrongStatus() {
+        mockMortgageLoanModel.setStatus(mockLoanStatus_3);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.setFinalApproval(1L, mockClient_1));
+    }
+
+    @Test
+    public void testSetFinalApprovalCorrect() {
+        mockMortgageLoanModel.setStatus(mockLoanStatus_4);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.setFinalApproval(1L, mockClient_1));
+    }
+
+    @Test
+    public void testSetApprovedWrongStatus() {
+        mockMortgageLoanModel.setStatus(mockLoanStatus_4);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.setApproved(1L, mockExecutive_1));
+    }
+
+
+
+    @Test
+    public void testSetApprovedCorrect() {
+        mockMortgageLoanModel.setStatus(mockLoanStatus_5);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.setApproved(1L, mockExecutive_1));
+    }
+
+    @Test
+    public void testSetRejectedWrongStatus() {
+        mockMortgageLoanModel.setStatus(mockLoanStatus_6);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.setRejected(1L, mockExecutive_1));
+    }
+
+    @Test
+    public void cancelMortgageByClientRightClient() {
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.cancelMortgageByClient(1L, mockClient_1));
+    }
+
+    @Test
+    public void cancelMortgageByClientWrongClient() {
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.cancelMortgageByClient(1L, mockClient_2));
+    }
+
+    @Test
+    public void testSetInOutgoWrongStatus() {
+        mockMortgageLoanModel.setStatus(mockLoanStatus_5);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.setInOutgo(1L, mockExecutive_1));
+    }
+
+    @Test
+    public void testSetInOutgoCorrect() {
+        mockMortgageLoanModel.setStatus(mockLoanStatus_6);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.setInOutgo(1L, mockExecutive_1));
+    }
+
+    @Test
+    public void testReviewMortgageNotExists() {
+        when(mortgageLoanReviewRepository.findById(1L)).thenReturn(Optional.empty());
+        Assertions.assertThrows(ResponseStatusException.class, () -> {mortgageLoanService.reviewMortgage(1L, null, mockExecutive_1);});
+    }
+
+    @Test
+    public void testReviewSameReviewer() {
+        MortgageLoanReviewModel review = new MortgageLoanReviewModel(mockMortgageLoanModel, mockExecutive_1);
+        when(mortgageLoanReviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.reviewMortgage(1L, null, mockExecutive_1));
+    }
+
+    @Test
+    public void testReviewCorrectReviewer() {
+        MortgageLoanReviewModel review = new MortgageLoanReviewModel(mockMortgageLoanModel, mockExecutive_1);
+        MortgageReview req = new MortgageReview(true);
+        when(mortgageLoanReviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.reviewMortgage(1L, req, mockExecutive_2));
+    }
 }

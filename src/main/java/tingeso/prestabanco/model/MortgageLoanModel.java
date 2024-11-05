@@ -113,6 +113,7 @@ public class MortgageLoanModel {
         float r = this.interest_rate / 12 / 100;
         int n = this.payment_term * 12;
         Double quota = p * ((r * pow(1 + r, n)) / (pow(1 + r, n) - 1));
+        System.out.println(quota);
         return quota.longValue();
     }
 

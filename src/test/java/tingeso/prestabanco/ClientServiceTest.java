@@ -18,6 +18,7 @@ import tingeso.prestabanco.model.ClientModel;
 import tingeso.prestabanco.model.RoleModel;
 import tingeso.prestabanco.model.UserModel;
 import tingeso.prestabanco.repository.ClientRepository;
+import tingeso.prestabanco.repository.MortgageLoanRepository;
 import tingeso.prestabanco.repository.RoleRepository;
 import tingeso.prestabanco.repository.UserRepository;
 import tingeso.prestabanco.service.ClientService;
@@ -25,6 +26,8 @@ import org.junit.jupiter.api.Assertions;
 import tingeso.prestabanco.util.JwtUtil;
 
 import java.sql.Date;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.Mockito.when;
@@ -43,6 +46,9 @@ public class ClientServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private MortgageLoanRepository mortgageLoanRepository;
 
     @Mock
     private AuthenticationManager authenticationManager;
@@ -148,7 +154,8 @@ public class ClientServiceTest {
         mockClient.setPassword(encrypted_password);
         when(userRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.of(mockClient));
         when(passwordEncoder.matches("ClaveIncorrecta", encrypted_password)).thenReturn(false);
-        Assertions.assertThrows(BadCredentialsException.class, () -> {clientService.login(mockLoginRequest);});
+        Optional<LoginResponse> res = clientService.login(mockLoginRequest);
+        Assertions.assertTrue(res.isEmpty());
     }
 
     @Test
@@ -169,7 +176,14 @@ public class ClientServiceTest {
         mockClient.setPassword(encrypted_password);
         when(userRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.of(mockClient));
         when(clientRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.of(mockClient));
+        when(passwordEncoder.matches("ClaveCorrecta123.", encrypted_password)).thenReturn(true);
         Optional<LoginResponse> result = clientService.login(mockLoginRequest);
         Assertions.assertTrue(result.isPresent());
+    }
+
+    @Test
+    public void testGetMortgageRequests() {
+        when(mortgageLoanRepository.findAllByClientId(mockClient.getId())).thenReturn(new ArrayList<>());
+        Assertions.assertTrue(clientService.getMortgageRequests(mockClient).isEmpty());
     }
 }

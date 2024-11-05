@@ -52,6 +52,8 @@ public class MortgageLoanController {
         if (user.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
+
+
         return ResponseEntity.ok(mortgageService.getMortgageLoan(id, user.get()));
     }
     @PostMapping("/{id}/add_documents")
@@ -126,5 +128,7 @@ public class MortgageLoanController {
         }
         return ResponseEntity.ok(mortgageService.setInOutgo(id, executive.get()));
     }
+
+
 
 }

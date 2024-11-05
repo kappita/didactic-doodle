@@ -21,6 +21,7 @@ import tingeso.prestabanco.repository.RoleRepository;
 import tingeso.prestabanco.repository.UserRepository;
 import tingeso.prestabanco.service.ClientService;
 import tingeso.prestabanco.service.ExecutiveService;
+import tingeso.prestabanco.util.JwtUtil;
 
 import java.sql.Date;
 import java.util.Optional;
@@ -40,7 +41,11 @@ public class ExecutiveServiceTest {
     @InjectMocks
     private ExecutiveService executiveService;
 
+    @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtUtil jwtUtil;
 
     private ExecutiveModel mockExecutive;
     private RoleModel mockRole;
@@ -60,7 +65,7 @@ public class ExecutiveServiceTest {
     @Test
     public void testRegister() {
         when(executiveRepository.save(mockExecutive)).thenReturn(mockExecutive);
-        when(roleRepository.findById(1L)).thenReturn(Optional.of(mockRole));
+        when(roleRepository.findByName("EXECUTIVE")).thenReturn(Optional.of(mockRole));
         Optional<RegisterResponse> result = executiveService.register(mockExecutive);
         Assertions.assertTrue(result.isPresent());
     }
@@ -76,16 +81,17 @@ public class ExecutiveServiceTest {
     @Test
     public void testRegisterInvalidEmail() {
         when(executiveRepository.save(mockExecutive)).thenReturn(mockExecutive);
-        when(executiveRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.of(mockExecutive));
+        when(userRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.of(mockExecutive));
         when(roleRepository.findByName("EXECUTIVE")).thenReturn(Optional.of(mockRole));
-        Optional<RegisterResponse> result = executiveService.register(mockExecutive);
         Assertions.assertThrows(RuntimeException.class, () -> {executiveService.register(mockExecutive);});
     }
+
+
 
     @Test
     public void testLoginNoEmail() {
         when(userRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.empty());
-        Assertions.assertThrows(BadCredentialsException.class, () -> {executiveService.login(mockLoginRequest);});
+        Assertions.assertThrows(RuntimeException.class, () -> {executiveService.login(mockLoginRequest);});
 
     }
 
@@ -95,8 +101,9 @@ public class ExecutiveServiceTest {
         String password = mockExecutive.getPassword();
         String encrypted_password = passwordEncoder.encode(password);
         mockExecutive.setPassword(encrypted_password);
+        when(passwordEncoder.matches(password, mockExecutive.getPassword())).thenReturn(true);
         when(userRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.of(mockExecutive));
-        Assertions.assertThrows(BadCredentialsException.class, () -> {executiveService.login(mockLoginRequest);});
+        Assertions.assertThrows(RuntimeException.class, () -> {executiveService.login(mockLoginRequest);});
     }
 
     @Test
@@ -116,6 +123,7 @@ public class ExecutiveServiceTest {
         mockExecutive.setPassword(encrypted_password);
         when(userRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.of(mockExecutive));
         when(executiveRepository.findByEmail("ignacioladal@gmail.com")).thenReturn(Optional.of(mockExecutive));
+        when(passwordEncoder.matches(password, mockExecutive.getPassword())).thenReturn(true);
         Optional<LoginResponse> result = executiveService.login(mockLoginRequest);
         Assertions.assertTrue(result.isPresent());
     }

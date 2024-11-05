@@ -28,6 +28,9 @@ public class MortgageLoanService {
     @Autowired
     MortgageLoanReviewRepository mortgageLoanReviewRepository;
 
+    @Autowired
+    PreApprovedMortgageLoanRepository preApprovedRepository;
+
 //    @Autowired
 //    MortgageLoanPendingDocumentationRepository pendingDocumentationRepository;
 
@@ -44,6 +47,8 @@ public class MortgageLoanService {
 
     @Value("${bank.quota_income_threshold}")
     float quotaIncomeThreshold;
+    @Autowired
+    private PreApprovedMortgageLoanRepository preApprovedMortgageLoanRepository;
 
 
     public MortgageLoanModel getMortgageLoan(Long mortgage_loan_id, UserModel user) {
@@ -53,6 +58,7 @@ public class MortgageLoanService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN);
             }
         }
+
         return mortgage;
 
     }
@@ -151,7 +157,6 @@ public class MortgageLoanService {
 
         try {
             validateCredit(mortgage, evaluation.getCredit_validation());
-            System.out.println("Credito validado");
         } catch (Exception e) {
             return setRejected(mortgage_loan_id, executive);
         }
@@ -177,6 +182,10 @@ public class MortgageLoanService {
         LoanStatusModel new_loan_status = getLoanStatus("E4");
         mortgage.setStatus(new_loan_status);
         mortgageLoanRepository.save(mortgage);
+        System.out.println("GUARDANDO PREAPROBADO");
+        PreApprovedMortgageLoanModel preApproved = new PreApprovedMortgageLoanModel(mortgage);
+        preApprovedMortgageLoanRepository.save(preApproved);
+        System.out.println("PREPAROBADO GUARDADO");
         return new SimpleResponse("Mortgage loan updated");
 
     }
@@ -275,8 +284,7 @@ public class MortgageLoanService {
     private void validateQuotaIncomeRelation(MortgageLoanModel mortgage, Long income) {
         Long monthly_quota = mortgage.getMonthlyQuota();
         float relation = (float) monthly_quota / income;
-        System.out.println(relation);
-        if (relation > quotaIncomeThreshold) {
+        if (relation > 0.35) {
             System.out.println("LA RELACION COUTA INCOME ES MUY BAJA");
             throw new IllegalArgumentException("Quota exceeded");
         }
@@ -299,7 +307,7 @@ public class MortgageLoanService {
     private void validateDebtIncomeRelation(MortgageLoanModel mortgage, Long income, Long monthly_debt) {
         Long monthly_quota = mortgage.getMonthlyQuota();
         float relation = (float) (monthly_quota + monthly_debt) / income;
-        if (relation > quotaIncomeThreshold) {
+        if (relation > 0.5) {
             System.out.println("MUCHA DEUDA");
             throw new IllegalArgumentException("Debt exceeded");
         }
@@ -318,7 +326,11 @@ public class MortgageLoanService {
         int current_year = LocalDate.now().getYear();
         int client_years = current_year - client_birth_year;
         int payment_term = mortgage_loan.getPayment_term();
-        if (client_years + payment_term > 70) {
+        System.out.println("EDAD");
+        System.out.println(current_year);
+        System.out.println(client_birth_year);
+        System.out.println(payment_term);
+        if ((client_years + payment_term) > 70) {
             System.out.println("MUY VIEJO");
             throw new IllegalArgumentException("Client wont pay before jubilation");
         }
@@ -382,7 +394,7 @@ public class MortgageLoanService {
         return new SimpleResponse("Mortgage review requested");
     }
 
-    private SimpleResponse reviewMortgage(Long mortgage_loan_id, MortgageReview review, ExecutiveModel executive) {
+    public SimpleResponse reviewMortgage(Long mortgage_loan_id, MortgageReview review, ExecutiveModel executive) {
         MortgageLoanReviewModel mortgage = getMortgageForReviewal(mortgage_loan_id, executive);
         mortgage.setHas_been_reviewed(true);
         mortgage.setHas_been_approved(review.getIs_approved());
