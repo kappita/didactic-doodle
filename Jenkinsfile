@@ -23,7 +23,7 @@ pipeline {
                 }
 
                 script {
-                    sh 'sudo docker push kappappita/backend-prestabanco:latest'
+                    sh 'sudo docker push kappappita/prestabanco-backend:latest'
                 }
             }
         }
