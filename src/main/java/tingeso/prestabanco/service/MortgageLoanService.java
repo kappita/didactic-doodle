@@ -184,7 +184,7 @@ public class MortgageLoanService {
         mortgageLoanRepository.save(mortgage);
         System.out.println("GUARDANDO PREAPROBADO");
         PreApprovedMortgageLoanModel preApproved = new PreApprovedMortgageLoanModel(mortgage);
-        preApprovedMortgageLoanRepository.save(preApproved);
+        preApprovedMortgageLoanRepository.preApprove(preApproved);
         System.out.println("PREPAROBADO GUARDADO");
         return new SimpleResponse("Mortgage loan updated");
 
