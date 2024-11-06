@@ -10,6 +10,9 @@ import tingeso.prestabanco.dto.MortgageSimulationRequest;
 import tingeso.prestabanco.dto.SimulationResponse;
 import tingeso.prestabanco.model.ClientModel;
 import tingeso.prestabanco.service.MortgageLoanSimulationService;
+import tingeso.prestabanco.util.JwtUtil;
+
+import java.util.Optional;
 
 @RestController
 @CrossOrigin("*")
@@ -18,13 +21,15 @@ public class MortgageSimulationController {
     @Autowired
     MortgageLoanSimulationService mortgageLoanSimulationService;
 
+    @Autowired
+    JwtUtil jwtUtil;
+
     @PostMapping("")
-    public ResponseEntity<SimulationResponse> simulate(@RequestBody MortgageSimulationRequest req) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
+    public ResponseEntity<SimulationResponse> simulate(@RequestBody MortgageSimulationRequest req, @RequestHeader("Authorization") String authorization) {
+        Optional<ClientModel> client = jwtUtil.validateClient(authorization);
+        if (client.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        ClientModel client = (ClientModel) auth.getPrincipal();
-        return ResponseEntity.ok(mortgageLoanSimulationService.simulate(req, client));
+        return ResponseEntity.ok(mortgageLoanSimulationService.simulate(req, client.get()));
     }
 }
