@@ -1,10 +1,12 @@
 package tingeso.prestabanco.dto;
 
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 
 @Data
+@AllArgsConstructor
 public class MortgageSimulationRequest {
     private Long loan_type_id;
     private Integer payment_term;

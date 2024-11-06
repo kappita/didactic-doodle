@@ -2,8 +2,6 @@ package tingeso.prestabanco.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import tingeso.prestabanco.dto.LoginRequest;
 import tingeso.prestabanco.dto.LoginResponse;
@@ -11,8 +9,8 @@ import tingeso.prestabanco.dto.RegisterResponse;
 import tingeso.prestabanco.model.ClientModel;
 import tingeso.prestabanco.model.LoanTypeModel;
 import tingeso.prestabanco.model.MortgageLoanModel;
+import tingeso.prestabanco.repository.LoanTypeRepository;
 import tingeso.prestabanco.service.ClientService;
-import tingeso.prestabanco.service.LoanTypeService;
 import tingeso.prestabanco.util.JwtUtil;
 
 import java.util.List;
@@ -25,8 +23,10 @@ public class ClientController {
     @Autowired
     private ClientService clientService;
 
+
+
     @Autowired
-    private LoanTypeService loanTypeService;
+    private LoanTypeRepository loanTypeRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -75,7 +75,7 @@ public class ClientController {
             return ResponseEntity.badRequest().build();
         }
 
-        return ResponseEntity.ok(loanTypeService.getAllLoanTypes());
+        return ResponseEntity.ok(loanTypeRepository.findAll());
     }
 
 //    @GetMapping("")

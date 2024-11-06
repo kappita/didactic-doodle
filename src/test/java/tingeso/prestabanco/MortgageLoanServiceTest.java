@@ -423,20 +423,31 @@ public class MortgageLoanServiceTest {
     @Test
     public void testReviewMortgageNotExists() {
         when(mortgageLoanReviewRepository.findById(1L)).thenReturn(Optional.empty());
-        Assertions.assertThrows(ResponseStatusException.class, () -> {mortgageLoanService.reviewMortgage(1L, null, mockExecutive_1);});
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {mortgageLoanService.reviewMortgage(1L, null, mockExecutive_1);});
     }
 
     @Test
     public void testReviewSameReviewer() {
         MortgageLoanReviewModel review = new MortgageLoanReviewModel(mockMortgageLoanModel, mockExecutive_1);
         when(mortgageLoanReviewRepository.findById(1L)).thenReturn(Optional.of(review));
-        Assertions.assertThrows(ResponseStatusException.class, () -> mortgageLoanService.reviewMortgage(1L, null, mockExecutive_1));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> mortgageLoanService.reviewMortgage(1L, null, mockExecutive_1));
     }
 
     @Test
     public void testReviewCorrectReviewer() {
         MortgageLoanReviewModel review = new MortgageLoanReviewModel(mockMortgageLoanModel, mockExecutive_1);
         MortgageReview req = new MortgageReview(true);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
+        when(mortgageLoanReviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        Assertions.assertDoesNotThrow(() -> mortgageLoanService.reviewMortgage(1L, req, mockExecutive_2));
+    }
+
+    @Test
+    public void testReviewReject() {
+        MortgageLoanReviewModel review = new MortgageLoanReviewModel(mockMortgageLoanModel, mockExecutive_1);
+        MortgageReview req = new MortgageReview(false);
+        mockMortgageLoanModel.setStatus(mockLoanStatus_3);
+        when(mortgageLoanRepository.findById(1L)).thenReturn(Optional.of(mockMortgageLoanModel));
         when(mortgageLoanReviewRepository.findById(1L)).thenReturn(Optional.of(review));
         Assertions.assertDoesNotThrow(() -> mortgageLoanService.reviewMortgage(1L, req, mockExecutive_2));
     }

@@ -177,7 +177,6 @@ public class MortgageLoanService {
     }
 
     public SimpleResponse setPreApproved(Long mortgage_loan_id, ExecutiveModel executive) {
-        validateMortgageReview(mortgage_loan_id);
         MortgageLoanModel mortgage = getMortgageLoan(mortgage_loan_id);
         LoanStatusModel new_loan_status = getLoanStatus("E4");
         mortgage.setStatus(new_loan_status);
@@ -326,10 +325,7 @@ public class MortgageLoanService {
         int current_year = LocalDate.now().getYear();
         int client_years = current_year - client_birth_year;
         int payment_term = mortgage_loan.getPayment_term();
-        System.out.println("EDAD");
-        System.out.println(current_year);
-        System.out.println(client_birth_year);
-        System.out.println(payment_term);
+
         if ((client_years + payment_term) > 70) {
             System.out.println("MUY VIEJO");
             throw new IllegalArgumentException("Client wont pay before jubilation");
@@ -372,50 +368,36 @@ public class MortgageLoanService {
         }
     }
 
-    private void validateMortgageReview(Long mortgage_loan_id) {
+    private void validateMortgageReview(Long mortgage_loan_id, ExecutiveModel executive) {
         Optional<MortgageLoanReviewModel> mortgage = mortgageLoanReviewRepository.findById(mortgage_loan_id);
         if (mortgage.isEmpty()) {
-            return;
+            throw new IllegalArgumentException("Mortgage not found");
         }
 
-        if (!mortgage.get().isHas_been_reviewed()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The mortgage loan needs to be reviewed before getting approved");
+        if (mortgage.get().getReview_requester().getId().equals(executive.getId())) {
+            throw new IllegalArgumentException("Mortgage must be reviewed by another person");
         }
 
-        if (!mortgage.get().isHas_been_approved()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The mortgage loan needs to be approved by another executive");
-        }
+
     }
 
     private SimpleResponse setRequiresReview(Long mortgage_loan_id, ExecutiveModel executive) {
-        MortgageLoanModel mortgage = getMortgageLoan(mortgage_loan_id);
-        MortgageLoanReviewModel review_request = new MortgageLoanReviewModel(mortgage, executive);
-        mortgageLoanReviewRepository.save(review_request);
+        mortgageLoanReviewRepository.addReview(mortgage_loan_id, executive.getId());
         return new SimpleResponse("Mortgage review requested");
     }
 
     public SimpleResponse reviewMortgage(Long mortgage_loan_id, MortgageReview review, ExecutiveModel executive) {
-        MortgageLoanReviewModel mortgage = getMortgageForReviewal(mortgage_loan_id, executive);
-        mortgage.setHas_been_reviewed(true);
-        mortgage.setHas_been_approved(review.getIs_approved());
-        mortgageLoanReviewRepository.save(mortgage);
+        validateMortgageReview(mortgage_loan_id, executive);
+        if (review.getIs_approved()) {
+            mortgageLoanReviewRepository.deleteReview(mortgage_loan_id);
+            setPreApproved(mortgage_loan_id, executive);
+            return new SimpleResponse("Review has been submited");
+        }
+        mortgageLoanReviewRepository.deleteReview(mortgage_loan_id);
+        setRejected(mortgage_loan_id, executive);
         return new SimpleResponse("Review has been submited");
     }
 
-    private MortgageLoanReviewModel getMortgageForReviewal(Long mortgage_loan_id, ExecutiveModel executive) {
-        Optional<MortgageLoanReviewModel> mortgage_loan = mortgageLoanReviewRepository.findById(mortgage_loan_id);
-        if (mortgage_loan.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "The mortgage loan does not exist or does not require approval");
-        }
-
-        MortgageLoanReviewModel mortgage = mortgage_loan.get();
-        ExecutiveModel requester = mortgage.getReview_requester();
-        if (requester.getId().equals(executive.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can not approve your own request");
-        }
-
-        return mortgage;
-    }
 
 }
 
