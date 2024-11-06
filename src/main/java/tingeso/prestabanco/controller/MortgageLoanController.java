@@ -129,6 +129,15 @@ public class MortgageLoanController {
         return ResponseEntity.ok(mortgageService.setInOutgo(id, executive.get()));
     }
 
+    @PostMapping("/{id}/review")
+    public ResponseEntity<SimpleResponse> reviewMortgage(@PathVariable Long id, @RequestBody MortgageReview req, @RequestHeader("Authorization") String authorization) {
+        Optional<ExecutiveModel> executive = jwtUtil.validateExecutive(authorization);
+        if (executive.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(mortgageService.reviewMortgage(id, req, executive.get()));
+    }
+
 
 
 }
